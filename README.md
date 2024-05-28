@@ -4,6 +4,8 @@
 
 I am writing this Interpreted Language in C. The idea is it is supposed to be simple, but also powerful.
 
+This is the 4th or 5th version of GORK. So far this one has been the best. I am learning C by writing this interpreter.
+
 Below are features that will be implimented, and their progress:
 
 - [x] Allocate memory for PROGRAM MEMORY, VARIABLE TABLE, and STACK
@@ -14,6 +16,11 @@ Below are features that will be implimented, and their progress:
 - [x] Functions to convert from any number type to another.
 - [x] When storing a FUNCTION in the variable table, store the address it's function code starts in PROGRAM MEMORY.
 - [ ] Use of SYMBOLS/WHITESPACE for flexible code style.
+- [ ] Impliment storing of LISTS in VARIABLE TABLE
+- [ ] STACK operations: Doing math on numbers, concationation of strings.
+- [ ] INTERPRETER command line.
+- [ ] Ability to EDIT or RUN PROGRAM in PROGRAM MEMORY from command line
+- [ ] Ability to write programs in seperate text file then run them from commandline. eg "run myfile.txt"
 
 ### Example Program Code:
 
