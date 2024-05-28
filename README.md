@@ -9,6 +9,7 @@ This is the 4th or 5th version of GORK. So far this one has been the best. I am 
 Below are features that will be implimented, and their progress:
 
 - [x] Allocate memory for PROGRAM MEMORY, VARIABLE TABLE, and STACK
+- [x] Function to visualize memory state
 - [x] INTERPRET PROGRAM MEMORY. Add variables to STACK, and or VARIABLE TABLE
 - [x] Determine whether or not a variable is a BUILTIN function, if so, do not add it to the variable table.
 - [x] Determine whether or not variable on the STACK is already stored in VARIABLE TABLE, if so, do not re-add it.
