@@ -299,7 +299,8 @@ or
             #
   [out findname,0,"hello"]                here we call findname sending 0p=0,1p="hello"
                                           out will print the index of "hello" if it exists.
-                                          when comparing variables, if their types do not match, they are skipped. which makes searching much faster. eg.
+                                          when comparing variables, if their types do not match,
+                                          they are skipped. which makes searching much faster. eg.
   [list,"hello",2,3.321,"x",-234]
   
   [x findname,0,-234]                     elements are STR,UINT,DOUBLE,CHAR,LONG.
@@ -312,11 +313,17 @@ or
   
   [x"a"] [z"ask"]
   [con x=z,0]                            this will return TRUE, as strings can be
-                                         treated as a list, and indexed like (strvar,x), to access their elements. when an elment is accessed individually, it returns a CHAR value.
+                                         treated as a list, and indexed like (strvar,x), to access
+                                         their elements. when an elment is accessed individually,
+                                         it returns a CHAR value.
   [x3421.234] [y32432.322]
   [con x=y]
-                                        these expressions will be tested, but obvioulsy found to be false, but because the types are the same, they will be tested.
+                                        these expressions will be tested, but obvioulsy found to be false,
+                                        but because the types are the same, they will be tested.
   [x32][y33.1][con x<y]                 even though their types are different, they
-                                        will be tested as they are both numbers. When number types are different, they will automatically return false or true when using "=" or "!" comparisons. but when using "<" or ">" comparisons, they will be tested.
+                                        will be tested as they are both numbers. When number types
+                                        are different, they will automatically return false or true
+                                        when using "=" or "!" comparisons. 
+                                        but when using "<" or ">" comparisons, they will be tested.
 ```
   
