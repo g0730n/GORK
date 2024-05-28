@@ -1,8 +1,11 @@
 #GORK Programming Language
+
 ##General Optimized Reusable Keywords
+
 I am writing this Interpreted Language in C. The idea is it is supposed to be simple, but also powerful.
 
 Below are features that will be implimented, and their progress:
+
 - [x] Allocate memory for PROGRAM MEMORY, VARIABLE TABLE, and STACK
 - [x] INTERPRET PROGRAM MEMORY. Add variables to STACK, and or VARIABLE TABLE
 - [x] Determine whether or not a variable is a BUILTIN function, if so, do not add it to the variable table.
@@ -13,6 +16,7 @@ Below are features that will be implimented, and their progress:
 - [] Use of SYMBOLS/WHITESPACE for flexible code style.
 
 ###Example Program Code:
+
 ```
 var 0 out var
 func#
@@ -24,8 +28,10 @@ func#
 var func,var
 
 ```
+
 Below examples of the same code, but with a different stype displaying the flexibility to substitute symbols for whitespace. In GORK, multiple whitespace in any form is condensed down to 1 whitepsace value upon interpretation.
 A possible style:
+
 ```
 var=0
 out(var)
@@ -37,7 +43,9 @@ func#
     #
 var=func,var;
 ```
+
 Another Possible style:
+
 ```
 var:0;
 out:var;
@@ -51,11 +59,15 @@ func#{
   #
 var:func,var;
 ```
+
 Most Minimal style:
+
 ```
 var0 out var func#out0p 0p+1 con0p<10 lpf ret0p#var func,var
 ```
+
 Same code, but using brackets to display exactly what are seperate expressions. []brackets denote expressions,{}brackets denote function code:
+
 ```
 [var 0]
 [out var]
@@ -67,6 +79,7 @@ Same code, but using brackets to display exactly what are seperate expressions. 
     }#
 [var func,var]
 ```
+
 RULES FOR IDENTIFYING AN EXPRESSION:
 1. var name has been followed by a value, then whitepsace(space or any other non used symbols, tabs, newlines, etc. operators (+ with str or nums), -, /, *, % continue the expression
   [var 4]                  var=4
