@@ -113,11 +113,17 @@ operators (+ with str or nums), -, /, *, % continue the expression. Outside of a
 
 ```
   [var 4]                  var=4
+  
   [firstvar secondvar]     firstvar=secondvar
+  
   [var+2]                  var=value of var + 2
+  
   [var 2+2]                var=2+2
+  
   [var"hello "+"world!"]   var="hello "+"world!" (+ operator only can be used on str)
+  
   [var2+"hi"]              var="2hi" (a string in expression always results in str)
+  
   [var 32+var]             same as [var+32]
 ```
 
@@ -127,46 +133,87 @@ BUILTIN FUNCTIONS are "out", "ret", "lpf", and "con". More will be added later..
 
 ```
   [out2]                  prints "2"
+  
   [outvar] [x+2]          creates var "outvar=x+2"
+                          variables cannot be lumped together for example "out" and "var"
+                          need whitepsace between them to work "out var". Otherwise instead
+                          of assigning the value of "var" to "out" it will create a variable
+                          named "outvar" then try to assign the next expression to it. In this
+                          example it created a variable named "outvar" then read the next
+                          expression "x+2". now "outvar=x+2" and "x" has been unchanged.
+  
   [out var]               prints var
+  
   [out"hello "+"world!"]  prints "hello world!"
+                          If a variable name is followed by a non alpha character, (whitespace,
+                          symbol, or number) no seperator is needed.
+  
+  
   [out2+var/3]            prints var/3+2
-  [func #]or
+  
+  [func #]
+or
   [func#]                 defines a function. stores func name and addr in variable
                           table. Function code block is skipped until function is called.
+                          
   [func]                  a func call is always an expression to itself
-  [func,2,3,2]            unless parameters are used????
-  [func,"hello "]         str parameter???
+  
+  [func,2,3,2]            unless parameters are used.
+  
+  [func,"hello "]         a string parameter.
+  
   [x func]                storing function return value in x
                           functions can never be redifined. Doing [func3] will never
                           create a new variable of "func" with value of 3, but consider
-                          3 to be a parameter. if no parameters are used in function,these values are simply discarded.
-  [x func,0]               sends "0" parameter to func, stores result in x
-  [ret x]
+                          3 to be a parameter. if no parameters are used in function,
+                          these values are simply discarded from stack when function has
+                          finished running.
+                          
+  [x func,0]              sends "0" parameter to func, stores result in x
+  
+  [ret x]                 "ret" must always be followed by a value or variable
   [ret"DONE!"]
-  [ret24]                 "ret" must always be followed by a value or variable
+  [ret24]                 
+  
   [lpf]                   "lpf" if called, starts function over again from beginning
-  [con3<10]               "con must always be followed by (value)(operator)(value)
-  [con x<100]             if x is less than 100
+  
+  [con 3 < 10]            "con must always be followed by (value)(operator)(value)
+                          Following the rules of using data types as seperators, the
+                          previous expression can be written like this:
+  [con3<10]
+  
+  [con x<100]             if x is less than 100. Here "x" needs whitespace after "con",
+  [con100>x]              we can save one byte in program memory by reversing the
+                          conditional.
+  
   [con x="hello"]         if x equals "hello"
-  [con100>x]              if 100 is greater than x (or if x is less than 100)
+  
   [con100!x]              if 100 does not equal x
+  
   [con100=x]              if 100 equals x
+  
   [con1=1]                creates an infininte loop but with no way to break out of
                           instead do:
-  [con x=1] or
+  [con x=1]
+or
   [con1=x]                then x can be changed to other than 1 and loop breaks
                           "con" must always be followed by (value)(operator)(value), if
-                          it returns true(uint8_t '1'), then the next expression is evaluated. if it returns false(uint8_t '0'), then the next expression is skipped.
+                          it returns true(uint8_t '1'), then the next expression is evaluated.
+                          if it returns false(uint8_t '0'), then the next expression is skipped.
+                          
                           a function can be used as the next expression, eg.
   [x0]
   [con100>x][x myfunc,x]  this is really considered ONE expression as the conditional
                           will skip the function expression if it doesn't evalueate to
-                          true. if it evaluates to true, it executes the function. below is the code for the whole function.
+                          true. if it evaluates to true, it executes the function.
+                          Below is the code for the whole function.
   [myfunc]#
-          [ret 0p+1]      parameters are indexed by their position (0p,1p,2p,3p...)
+          [ret 0p+1]
+        or
+          [ret0p+1]       parameters are indexed by their position (0p,1p,2p,3p...)
           #               in this case we sent the value of x:(0) as 0p, then add 1
-                          to it and return it, which basically does "x=1". the condtion checks that 100>1, and it's true, so it runs [x myfunc0] again.
+                          to it and return it, which basically does "x=1". the condtion
+                          checks that 100>1, and it's true, so it runs [x myfunc0] again.
                           another way of doing this is simpler:
   [myfunc]#[0p+1]
            [out0p]
@@ -174,7 +221,7 @@ BUILTIN FUNCTIONS are "out", "ret", "lpf", and "con". More will be added later..
            [lpf]
            [ret0p]
           #
-  [x myfunc,0]             this does the same thing basically, but prints out 1-100,
+  [x myfunc,0]            this does the same thing basically, but prints out 1-100,
                           then at the end stores 100 in x. we can do the same thing,
                           by passing two parameters:
     [myfunc]#
@@ -191,19 +238,33 @@ BUILTIN FUNCTIONS are "out", "ret", "lpf", and "con". More will be added later..
 
 ```
   [mylist,100,200,300,400,500,600,700,800] if a variables name is followed by a 
-                                          ',' then it is created as a list. lists can be useful as they only store one variable name for multiple values in variable table. we will dynamically asign any data type to any value of the list. in memory, here is how a list is stored in the variable table:
+                                          ',' then it is created as a list.
+                                          lists can be useful as they only store one 
+                                          variable name for multiple values in variable table.
+                                          we will dynamically asign any data type
+                                          to any value of the list.
+                                          in memory, here is how a list is stored in the
+                                          variable table:
   
   (TYPE,VARIABLE_NAME,ELEMENTS)           the list header
-   24   mylist        8...  
+   24   mylist        8...
+   
   (0ELEMENT_TYPE,0ELEMENT_VALUE)          each element only uses two spots in memory
    2             hello world!             here we store type 2 (STR) with value of
                                           "hello world!"
-                                          if the list has already been created, then accessing an element is done like this:
-  [out mylist0]                           prints first element of "mylist"
+                                          
+                                          if the list has already been created, then accessing
+                                          an element is done like this:
+  [out mylist,0]                          prints first element of "mylist"
+  
   [mylist,0 "Hello GORK!"]                sets first element of "mylist" to value 
                                           "Hello GORK!"
+                                          
   [mylist,7 3]                             assigns value of (3) to element 7 in list
+  
   [mylist,7+23]                            adds 23 to element 7 in list.
+  
+  [
   
   [findname]#                             function to find string in list
               [con mylist,0p=1p]          checks if mylist[0p value]=1p(STR)
