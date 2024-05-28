@@ -199,7 +199,8 @@ or
   
   [con100=x]              if 100 equals x
   
-  [con1=1]                creates an infininte loop but with no way to break out of
+  [con1=1]                if followed by "lpf" this creates an infininte loop with no way
+                          to break out of...
                           instead do:
   [con x=1]
 or
@@ -217,7 +218,7 @@ or
   [myfunc]#
           [ret 0p+1]
         or
-          [ret0p+1]       parameters are indexed by their position (0p,1p,2p,3p...)
+          [ret1+0p]       parameters are indexed by their position (0p,1p,2p,3p...)
           #               in this case we sent the value of x:(0) as 0p, then add 1
                           to it and return it, which basically does "x=1". the condtion
                           checks that 100>1, and it's true, so it runs [x myfunc0] again.
@@ -254,10 +255,10 @@ or
                                           variable table:
   
   (TYPE,VARIABLE_NAME,ELEMENTS)           the list header
-   24   mylist        8...
+   LST   mylist        8...
    
   (0ELEMENT_TYPE,0ELEMENT_VALUE)          each element only uses two spots in memory
-   2             hello world!             here we store type 2 (STR) with value of
+   STR            hello world!             here we store type 2 (STR) with value of
                                           "hello world!"
                                           
                                           if the list has already been created, then accessing
@@ -267,11 +268,26 @@ or
   [mylist,0 "Hello GORK!"]                sets first element of "mylist" to value 
                                           "Hello GORK!"
                                           
-  [mylist,7 3]                             assigns value of (3) to element 7 in list
+  [mylist,7 3]                            assigns value of (3) to element 7 in list
   
-  [mylist,7+23]                            adds 23 to element 7 in list.
+  [mylist,7+23]                           adds 23 to element 7 in list.
   
-  [
+  [mylist,20 42]                          Here we try to assign "42" to element 20 of "mylist"
+                                          if "mylist" only has 8 elements. Should we grow the
+                                          list by 12 elements? Or just return an INDEX OUT OF
+                                          RANGE error???
+                                          One option is to change the format of how we define
+                                          how many elements we have in the list. By creating an
+                                          unordered list...
+                                          
+  (TYPE, VARIABLE_NAME, ELEMENTS)         new format for the list header.
+   LST   mylist         8...  
+                                          when a list is initialized, eg:
+  [mylist,24,"hi",123.432,...]            it gives an ID, starting at 0 to each element.
+   
+  (E_TYPE, E_ID, E_VALUE)                 each element uses 3 spots in memory.
+   UINT    20    42                       here we store type UINT with value of
+                                          42, and ID of 20.
   
   [findname]#                             function to find string in list
               [con mylist,0p=1p]          checks if mylist[0p value]=1p(STR)
