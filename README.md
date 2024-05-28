@@ -1,6 +1,6 @@
-#GORK Programming Language
+# GORK Programming Language
 
-##General Optimized Reusable Keywords
+## General Optimized Reusable Keywords
 
 I am writing this Interpreted Language in C. The idea is it is supposed to be simple, but also powerful.
 
@@ -10,12 +10,12 @@ Below are features that will be implimented, and their progress:
 - [x] INTERPRET PROGRAM MEMORY. Add variables to STACK, and or VARIABLE TABLE
 - [x] Determine whether or not a variable is a BUILTIN function, if so, do not add it to the variable table.
 - [x] Determine whether or not variable on the STACK is already stored in VARIABLE TABLE, if so, do not re-add it.
-- [] If variable on STACK is already in VARIABLE TABLE, update it's value, shrinking or growing VARIABLE TABLE if type/length of variable data is different than before.
+- [ ] If variable on STACK is already in VARIABLE TABLE, update it's value, shrinking or growing VARIABLE TABLE if type/length of variable data is different than before.
 - [x] Functions to convert from any number type to another.
 - [x] When storing a FUNCTION in the variable table, store the address it's function code starts in PROGRAM MEMORY.
-- [] Use of SYMBOLS/WHITESPACE for flexible code style.
+- [ ] Use of SYMBOLS/WHITESPACE for flexible code style.
 
-###Example Program Code:
+### Example Program Code:
 
 ```
 var 0 out var
@@ -26,7 +26,27 @@ func#
     ret 0p
     #
 var func,var
+out var
 
+```
+
+The output of this code would be:
+```
+>run
+0
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+DONE!
+>
 ```
 
 Below examples of the same code, but with a different stype displaying the flexibility to substitute symbols for whitespace. In GORK, multiple whitespace in any form is condensed down to 1 whitepsace value upon interpretation.
@@ -37,11 +57,12 @@ var=0
 out(var)
 func#
     out(0p)
-    0p+1
-    con:0p<10(lpf)
+    0p=0p+1
+    con(0p<10){lpf}
     ret(0p)
     #
 var=func,var;
+out(var)
 ```
 
 Another Possible style:
@@ -58,12 +79,13 @@ func#{
   ret:0p;
   #
 var:func,var;
+out:var;
 ```
 
 Most Minimal style:
 
 ```
-var0 out var func#out0p 0p+1 con0p<10 lpf ret0p#var func,var
+var0out var func#out0p 0p+1 con0p<10 lpf ret0p#var func,var out var
 ```
 
 Same code, but using brackets to display exactly what are seperate expressions. []brackets denote expressions,{}brackets denote function code:
@@ -78,10 +100,18 @@ Same code, but using brackets to display exactly what are seperate expressions. 
     [ret 0p]
     }#
 [var func,var]
+[out var]
 ```
 
-RULES FOR IDENTIFYING AN EXPRESSION:
-1. var name has been followed by a value, then whitepsace(space or any other non used symbols, tabs, newlines, etc. operators (+ with str or nums), -, /, *, % continue the expression
+## RULES FOR INTERPRETING GORK
+
+1. ### Whitespace Expression Seperation
+
+Variable name has been followed by a value, then whitepsace(space or any other non used symbols, tabs, newlines, etc.
+
+operators (+ with str or nums), -, /, *, % continue the expression. Outside of a CONDITIONAL(con), =, <, >, and ! can also be used as whitepace seperators.
+
+```
   [var 4]                  var=4
   [firstvar secondvar]     firstvar=secondvar
   [var+2]                  var=value of var + 2
@@ -89,8 +119,13 @@ RULES FOR IDENTIFYING AN EXPRESSION:
   [var"hello "+"world!"]   var="hello "+"world!" (+ operator only can be used on str)
   [var2+"hi"]              var="2hi" (a string in expression always results in str)
   [var 32+var]             same as [var+32]
+```
 
-2. RULES FOR BUILTINS, AND FUNCTIONS
+2. ### Rules for BUILTIN FUNCTIONS and VARIABLES
+
+BUILTIN FUNCTIONS are "out", "ret", "lpf", and "con". More will be added later...
+
+```
   [out2]                  prints "2"
   [outvar] [x+2]          creates var "outvar=x+2"
   [out var]               prints var
@@ -100,13 +135,13 @@ RULES FOR IDENTIFYING AN EXPRESSION:
   [func#]                 defines a function. stores func name and addr in variable
                           table. Function code block is skipped until function is called.
   [func]                  a func call is always an expression to itself
-  [func2,3,2]             unless parameters are used????
-  [func"hello "]          str parameter???
+  [func,2,3,2]            unless parameters are used????
+  [func,"hello "]         str parameter???
   [x func]                storing function return value in x
                           functions can never be redifined. Doing [func3] will never
                           create a new variable of "func" with value of 3, but consider
                           3 to be a parameter. if no parameters are used in function,these values are simply discarded.
-  [x func0]               sends "0" parameter to func, stores result in x
+  [x func,0]               sends "0" parameter to func, stores result in x
   [ret x]
   [ret"DONE!"]
   [ret24]                 "ret" must always be followed by a value or variable
@@ -125,7 +160,7 @@ RULES FOR IDENTIFYING AN EXPRESSION:
                           it returns true(uint8_t '1'), then the next expression is evaluated. if it returns false(uint8_t '0'), then the next expression is skipped.
                           a function can be used as the next expression, eg.
   [x0]
-  [con100>x][x myfunc x]  this is really considered ONE expression as the conditional
+  [con100>x][x myfunc,x]  this is really considered ONE expression as the conditional
                           will skip the function expression if it doesn't evalueate to
                           true. if it evaluates to true, it executes the function. below is the code for the whole function.
   [myfunc]#
@@ -139,7 +174,7 @@ RULES FOR IDENTIFYING AN EXPRESSION:
            [lpf]
            [ret0p]
           #
-  [x myfunc0]             this does the same thing basically, but prints out 1-100,
+  [x myfunc,0]             this does the same thing basically, but prints out 1-100,
                           then at the end stores 100 in x. we can do the same thing,
                           by passing two parameters:
     [myfunc]#
@@ -148,11 +183,14 @@ RULES FOR IDENTIFYING AN EXPRESSION:
            [con0p<1p]
            [lpf]
           #
-  [myfunc0,100]        here we pass, 0 and 100 as the parameters. and instead of
-                       storing the value at the end, we simply print 1-100.
-                       
-3. RULES FOR LISTS
-  [mylist100,200,300,400,500,600,700,800] if a variables first value is followed by a 
+  [myfunc,0,100]        here we pass, 0 and 100 as the parameters. and instead of
+                        storing the value at the end, we simply print 1-100.
+```
+
+3. ### Rules for LISTS and CONDITIONAL comparisons
+
+```
+  [mylist,100,200,300,400,500,600,700,800] if a variables name is followed by a 
                                           ',' then it is created as a list. lists can be useful as they only store one variable name for multiple values in variable table. we will dynamically asign any data type to any value of the list. in memory, here is how a list is stored in the variable table:
   
   (TYPE,VARIABLE_NAME,ELEMENTS)           the list header
@@ -162,8 +200,8 @@ RULES FOR IDENTIFYING AN EXPRESSION:
                                           "hello world!"
                                           if the list has already been created, then accessing an element is done like this:
   [out mylist0]                           prints first element of "mylist"
-  [mylist,0"hello gork!"]                  sets first element of "mylist" to value 
-                                          "hello gork!"
+  [mylist,0 "Hello GORK!"]                sets first element of "mylist" to value 
+                                          "Hello GORK!"
   [mylist,7 3]                             assigns value of (3) to element 7 in list
   [mylist,7+23]                            adds 23 to element 7 in list.
   
@@ -174,12 +212,12 @@ RULES FOR IDENTIFYING AN EXPRESSION:
               [con 0p<mylist]             if 0p is less than length of 'mylist'
               [lpf]                       loop function
             #
-  [out findname 0,"hello"]                here we call findname sending 0p=0,1p="hello"
+  [out findname,0,"hello"]                here we call findname sending 0p=0,1p="hello"
                                           out will print the index of "hello" if it exists.
                                           when comparing variables, if their types do not match, they are skipped. which makes searching much faster. eg.
-  [list"hello",2,3.321,"x",-234]
+  [list,"hello",2,3.321,"x",-234]
   
-  [x findname0,-234]                     elements are STR,UINT,DOUBLE,CHAR,LONG.
+  [x findname,0,-234]                     elements are STR,UINT,DOUBLE,CHAR,LONG.
                                          -234 is LONG, so it skips first 4 elements immediately.
   [x321] [y83.13]                        x=LONG, y=DOUBLE
   [con x=y out x]                        immediately con will return false upon
@@ -195,5 +233,5 @@ RULES FOR IDENTIFYING AN EXPRESSION:
                                         these expressions will be tested, but obvioulsy found to be false, but because the types are the same, they will be tested.
   [x32][y33.1][con x<y]                 even though their types are different, they
                                         will be tested as they are both numbers. When number types are different, they will automatically return false or true when using "=" or "!" comparisons. but when using "<" or ">" comparisons, they will be tested.
-  
+```
   
