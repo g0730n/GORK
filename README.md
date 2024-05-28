@@ -318,8 +318,10 @@ or
                                          it returns a CHAR value.
   [x3421.234] [y32432.322]
   [con x=y]
-                                        these expressions will be tested, but obvioulsy found to be false,
-                                        but because the types are the same, they will be tested.
+                                        these expressions will be tested, but obvioulsy found
+                                        to be false, but because the types are the same, 
+                                        they will be tested.
+                                        
   [x32][y33.1][con x<y]                 even though their types are different, they
                                         will be tested as they are both numbers. When number types
                                         are different, they will automatically return false or true
