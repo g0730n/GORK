@@ -1,7 +1,9 @@
+#GORK Programming Language
+```
 [var4] [out var] [var+4] [out"hello there!"]
-[func]#([x0] [out x] [x+1][con x<10][lpf] [ret0])#
-[var func] [out var]
-
+[func]#([out 0p] [0p+1][con 0p<10][lpf] [ret0p])#
+[var func,var] [out var]
+```
 RULES FOR IDENTIFYING AN EXPRESSION:
 1. var name has been followed by a value, then whitepsace(space or any other non used symbols, tabs, newlines, etc. operators (+ with str or nums), -, /, *, % continue the expression
   [var 4]                  var=4
