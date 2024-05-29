@@ -2,7 +2,7 @@
 
 ## General Optimized Reusable Keywords
 
-I am writing this Interpreted Language in C. The idea is it is supposed to be simple, but also powerful.
+A WIP Interpreted Language in C. The idea is it is supposed to be simple, but also powerful.
 
 This is the 4th or 5th version of GORK. So far this one has been the best. I am learning C by writing this interpreter.
 
@@ -328,4 +328,25 @@ or
                                         when using "=" or "!" comparisons. 
                                         but when using "<" or ">" comparisons, they will be tested.
 ```
+## Data Types
+
+Data types are assigned automatically by the GORK interpreter. There are three basic types.
+
+1. NUMBER TYPE
+  All numbers are converted to a DOUBLE initially on when parsed. Then the interpreter will determine the size and type of the number and store it in the stack and variable table as such. Why not just store all numbers as doubles? GORK focuses on memory optimization over processing speed.
+  
+  Number types:
+  - uint8_t
+  - int8_t
+  - int16_t
+  - int32_t
+  - double
+  
+  All floating point numbers are stored as doubles.
+  
+2. CHAR TYPE
+  If a variable happens to be a string of 1 character eg. "a", it is saved as a CHAR type, which saves one byte of memory, excluding the trailing '\0' which the string has.
+  
+3. STRING TYPE
+  A string is any number of numbers, characters, or symbols enclosed in double quotes "".
   

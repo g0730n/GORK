@@ -28,7 +28,8 @@
 const char * program[] = "var4 out var var+4 out "
 												 "\"hello there!\""
 												 "func#x0 out x x+1 con x<10 lpf ret0#"
-												 "func out var";
+												 "func out var "
+                         "x-123456";
                          
 char *words[MAX_BUILTINS] = { "out", "lpf", "ret", "con", "NULL" };
 char cmd[MAX_INPUT_SIZE];
@@ -342,15 +343,15 @@ int push_num_to_stack(double data){
 				memcpy((int8_t *)(mem + stack_end), &num, INT_SIZE);
 			}
 			else if(num>=INT16_MIN && num<=INT16_MAX){
-				uint16_t num = (uint16_t)data;
+				int16_t num = (int16_t)data;
 				type = LONG;
 				stack_end = grow_stack_pointer(stack_end,LONG_SIZE);
-				memcpy((uint16_t *)(mem + stack_end), &num, LONG_SIZE);
+				memcpy((int16_t *)(mem + stack_end), &num, LONG_SIZE);
 			}
 			else{
 				type = LONGER;
 				stack_end = grow_stack_pointer(stack_end,LONGER_SIZE);
-				memcpy((uint32_t *)(mem + stack_end), &num, LONGER_SIZE);
+				memcpy((int32_t *)(mem + stack_end), &num, LONGER_SIZE);
 			}
 		}else{
 				double num = data;
@@ -363,13 +364,13 @@ int push_num_to_stack(double data){
 	return type;
 }
 
-void push_func_to_stack(uint16_t addr){
+void push_func_to_stack(int16_t addr){
   if(addr<0 || addr>MEM_SIZE){
   	printf("%f\n",addr);
     error=ADDRESS_OUT_OF_RANGE;
   }else{
     stack_end = grow_stack_pointer(stack_end,LONG_SIZE);
-    memcpy((uint16_t *)(mem + stack_end), &addr, LONG_SIZE);
+    memcpy((int16_t *)(mem + stack_end), &addr, LONG_SIZE);
   }
   check_errors(error);
 }
@@ -545,6 +546,24 @@ int interpret(int input, int start, int stop){
           state=BETWEEN;
           printf("\n%s:",word);
           if(ptr[i]=='#'){ add_var_to_stack(word, FUNC, "", i); }
+          if(ptr[i]=='-'){
+            int p=i;
+            p++;
+            if(isdigit(ptr[p])){
+              while(isdigit(ptr[p])){
+                printf("<%c>",(char)ptr[p]);
+                p++;
+              }
+              if(ptr[p]!='+' && ptr[p]!='*' && ptr[p]!='/' && ptr[p]!='%'){
+                printf("<%d>",ptr[p]);
+                sub_word_pos=0;
+                data[sub_word_pos]=ptr[i];
+                word_type=NUM;
+                sub_state=INNUM;
+                i++;
+              }
+            }
+          }
         }
       }
       
@@ -569,8 +588,9 @@ int interpret(int input, int start, int stop){
         }
       }
       
-      if(ptr[i]=='\n'){putchar(ptr[i]); }
-      if(ptr[i]==' '){ putchar(ptr[i]); }
+      if(isspace(ptr[i])){putchar(ptr[i]); }
+      //if(ptr[i]=='\n'){putchar(ptr[i]); }
+      //if(ptr[i]==' '){ putchar(ptr[i]); }
       
       if(ptr[i]=='"'){
         if(state!=INSTRING){
@@ -624,8 +644,8 @@ int main() {
 		//add_var_to_stack("a", CHAR, "z", 0);
      
     printf("\n-------------------------\n");
-    //int var_addr=get_var("func");
-    //printf("ADDR:%d\n",var_addr);
+    int var_addr=get_var("x");
+    printf("ADDR:%d\n",var_addr);
     printf("\n-------END DEBUG---------\n\n");
         
     dump_all_mem(0,MEM_SIZE);
