@@ -23,15 +23,41 @@
 #define MAX_INPUT_SIZE  32
 #define MAX_STRING_SIZE 16
 #define MAX_WORD_SIZE 8
+#define MAX_OPS      7
 #define MAX_BUILTINS 5
 
-const char * program[] = "var4 out var var+4 out "
+const char * program[] = "var4out var var var*32z"
 												 "\"hello there!\""
-												 "func#x0 out x x+1 con x<10 lpf ret0#"
+												 "func#x0out x x+1con x<10lpf ret0#"
 												 "func out var "
                          "x-123456";
                          
-char *words[MAX_BUILTINS] = { "out", "lpf", "ret", "con", "NULL" };
+const char *words[MAX_BUILTINS] = { "out", "lpf", "ret", "con", "NULL" };
+
+const char math_ops[MAX_OPS] = {'0','+','-','*','/','%','^'};
+enum math_op_type{
+  NNN,
+  ADD,
+  SUB,
+  MUL,
+  DIV,
+  MOD,
+  EXP
+};
+
+const char con_ops[MAX_OPS] = {'0','=','!','>','<', '&', '?'};
+enum con_op_type{
+  NN,
+  IS,
+  NOT,
+  MORE,
+  LESS,
+  AND,
+  OR
+};
+
+//const char space_syms[] = {};
+
 char cmd[MAX_INPUT_SIZE];
 
 char *mem;
@@ -48,7 +74,7 @@ int check_builtins(char* word){
   for(i=0; i<MAX_BUILTINS; i++){
     if(word[0]==words[i][0]){
       if(!strcmp(word,words[i])){
-        printf("[[%s]]\n",words[i]);
+        //printf("[[%s]]\n",words[i]);
         return i;
       }
     }
@@ -71,7 +97,11 @@ enum types {
 		LONGER,
     DOUBLE,
 		NUM,
-		FUNC
+		FUNC,
+    MATH,
+    CON,
+    SPACE,
+    SYS
 };
 
 enum errors {
@@ -93,7 +123,9 @@ enum states {
 	INSTRING,
 	INVAR,
 	INFUNC,
-	INNUM
+	INNUM,
+  INMATH,
+  INCON
 };
 
 int check_errors(int e){
@@ -158,41 +190,41 @@ int dump_mem(int pos) {
   int var_size = 0;
   int var_type = mem[pos];
   pos = move_pos(pos, CHAR_SIZE);
-  printf("\nVAR_NAME: %s\n", mem + pos);
+  //printf("\nVAR_NAME: %s\n", mem + pos);
 	pos = move_pos(pos, strlen(mem + pos) + CHAR_SIZE);
 	
   if (var_type == CHAR) {
     var_size=CHAR_SIZE;
-		printf("TYPE: CHAR\nDATA: %c\n", mem[pos]);
+		//printf("TYPE: CHAR\nDATA: %c\n", mem[pos]);
 	}else if (var_type == INT) {
     var_size=INT_SIZE;
-		printf("TYPE: INT\nDATA: %d\n", (int8_t)mem[pos]);
+		//printf("TYPE: INT\nDATA: %d\n", (int8_t)mem[pos]);
 	}else if (var_type == UINT) {
     var_size=UINT_SIZE;
-		printf("TYPE: UINT\nDATA: %d\n", (uint8_t)mem[pos]);
+		//printf("TYPE: UINT\nDATA: %d\n", (uint8_t)mem[pos]);
 	}else if (var_type == LONG || var_type == FUNC) {
     var_size=LONG_SIZE;
 		int16_t *lptr = (int16_t *)(mem + pos);
-    printf("TYPE: ");
-    if(var_type==LONG){ printf("LONG"); }
-    else{ printf("FUNC"); }
-		printf("\nDATA: %d\n", *lptr);
+    //printf("TYPE: ");
+    //if(var_type==LONG){ printf("LONG"); }
+    //else{ printf("FUNC"); }
+		//printf("\nDATA: %d\n", *lptr);
 	}else if (var_type == LONGER) {
     var_size=LONGER_SIZE;
 		int32_t *lgrptr = (int32_t *)(mem + pos);
-		printf("TYPE: LONGER\nDATA: %d\n", *lgrptr);
+		//printf("TYPE: LONGER\nDATA: %d\n", *lgrptr);
 	}else if (var_type == DOUBLE) {
     var_size=DOUBLE_SIZE;
 		double *dptr = (double *)(mem + pos);
-		printf("TYPE: DOUBLE\nDATA: %f\n", *dptr);
+		//printf("TYPE: DOUBLE\nDATA: %f\n", *dptr);
 	}else if (var_type == STR) {
-		printf("TYPE: STRING\nDATA: %s\n", mem + pos + CHAR_SIZE);
+		//printf("TYPE: STRING\nDATA: %s\n", mem + pos + CHAR_SIZE);
     var_size = strlen(mem + pos + CHAR_SIZE);
 	}else {
     check_errors(UNKNOWN);
 	}
   pos = move_pos(pos, var_size);
-  printf("\n----------------\n");
+  //printf("\n----------------\n");
   return var_size;
 }
 
@@ -501,42 +533,227 @@ int add_var_to_stack(char* word, int type, char* value, int addr){
 	}
 	push_var_name_to_stack(word);
 	push_type_to_stack(type);
-  
+  /*
   int b=check_builtins(word);
   if(b==MAX_BUILTINS){
     push_var_to_table(word);
   }
-  
+  */
 	//stack_pos=stack_end;
 	//printf("STACK_END:%d",stack_end);
 	return 0;
 }
 
+int ismath(char sym){
+  for(int i=0; i<MAX_OPS+CHAR_SIZE; i++){
+    if(math_ops[i]==sym){
+      return i;
+    }
+  }
+  return 0;
+}
+
+int iscon(char sym){
+  for(int i=0; i<MAX_OPS+CHAR_SIZE; i++){
+    if(con_ops[i]==sym){
+      return i;
+    }
+  }
+  return 0;
+}
+
+int parse_stack(){
+  stack_pos=stack_end;
+  int type=mem[stack_end];
+  int size=get_type_size(type);
+  int btype;
+  stack_pos++;
+  if(type==SYS){
+    btype=check_builtins(mem+stack_pos);
+    printf("<<%d>>",btype);
+    stack_pos+=strlen(mem+stack_pos)+CHAR_SIZE;
+  }else{
+    push_var_to_table(mem+stack_pos);
+    if(type==STR){size=strlen(mem+stack_pos)+CHAR_SIZE; }
+    stack_pos+=strlen(mem+stack_pos)+CHAR_SIZE+size;
+  }
+  return 0;
+}
+
 int interpret(int input, int start, int stop){
-	int state=BETWEEN;
-	int sub_state=BETWEEN;
-	int word_pos;
-	int sub_word_pos;
-	int pos;
+  int pos;
+  uint8_t in_exp;
+	uint8_t state=BETWEEN;
+	uint8_t word_pos;
+  uint8_t word_type=NUN;
+  
+  uint8_t top_state=BETWEEN;
+  uint8_t sub_state=BETWEEN;
+	uint8_t sub_word_pos;
+
 	char *ptr;
 	char word[MAX_WORD_SIZE];
 	char data[MAX_INPUT_SIZE];
-	int word_type=NUN;
   
 	if(input==PROGRAM){ ptr=mem; }
   else{ ptr=cmd; }
 	
-	for(int i=start; i<stop+1; i++){
+	for(pos=start; pos<stop; pos++){
+    if(ptr[pos]=='\0'){
+      printf("\n\n<PROGRAM: %d bytes>\n",pos);
+      return pos;
+    }
+    if(state==INSTRING){
+      if(ptr[pos]=='"'){
+        data[sub_word_pos]='\0';
+        state=BETWEEN;
+        if(in_exp<2){
+          in_exp++;
+        }
+      }else{
+        data[sub_word_pos]=ptr[pos];
+        sub_word_pos++;
+      }
+      putchar(ptr[pos]);
+    }
+    else if(top_state==INFUNC){
+      if(ptr[pos]=='#'){
+        top_state=BETWEEN;
+        in_exp=2;
+      }
+      putchar(ptr[pos]);
+    }
+    else{
+      if(isalpha(ptr[pos])){
+        if(state!=INWORD){
+          if(in_exp>1){
+            putchar('|');
+            in_exp=0;
+            if(sub_state==INSTRING){
+              sub_state=BETWEEN;
+              add_var_to_stack(word, word_type, data, pos);
+              parse_stack();
+              empty_stack();
+            }
+            else if(sub_state==INNUM){
+              sub_word_pos++;
+              data[sub_word_pos]='\0';
+              sub_state=BETWEEN;
+              add_var_to_stack(word, word_type, data, pos);
+              parse_stack();
+              empty_stack();
+            }
+          }
+          word_pos=0;
+          state=INWORD;
+          sub_state=INWORD;
+          
+          word[word_pos]=ptr[pos];
+          word_pos++;
+        }else{
+          word[word_pos]=ptr[pos];
+          word_pos++;
+        }
+      }else{
+        if(state==INWORD){
+          word[word_pos]='\0';
+          if(ptr[pos]=='#'){
+            add_var_to_stack(word, FUNC, "", pos);
+            parse_stack();
+            empty_stack();
+          }
+          uint8_t x=check_builtins(word);
+          if(x==1){ in_exp++; }
+          else if(x==MAX_BUILTINS){
+            x=get_var(word);
+            if(x){
+              x=mem[VAR_START+x-CHAR_SIZE];
+              if(x==FUNC){
+                add_var_to_stack(word, FUNC, "", pos);
+                parse_stack();
+                empty_stack();
+                in_exp++;
+              }
+              else{
+              
+              }
+            }
+            printf("(%d)",x);
+          }
+          printf("%s",word);
+          state=BETWEEN;
+          sub_state=BETWEEN;
+          if(in_exp<2){
+            in_exp++;
+          }
+        }
+        if(isdigit(ptr[pos])){
+          if(sub_state!=INNUM){
+            sub_word_pos=0;
+            data[sub_word_pos]=ptr[pos];
+            sub_state=INNUM;
+            word_type=NUM;
+            if(in_exp<2){
+              in_exp++;
+            }
+          }else{
+            sub_word_pos++;
+            data[sub_word_pos]=ptr[pos];
+          }
+          putchar('N');
+        }
+        else if(isspace(ptr[pos])){
+          if(sub_state!=BETWEEN){
+            sub_state=BETWEEN;
+            if(in_exp<2){
+              in_exp++;
+            }
+          }
+          putchar(' ');
+        }
+        else if(ispunct(ptr[pos])){
+          if(ismath(ptr[pos])){
+            putchar(ptr[pos]);
+          }
+          else if(iscon(ptr[pos])){
+            putchar(ptr[pos]);
+          }
+          else if(ptr[pos]=='"'){
+            sub_word_pos=0;
+            state=INSTRING;
+            sub_state=INSTRING;
+            word_type=STR;
+            putchar(ptr[pos]);
+          }
+          else{
+            if(ptr[pos]=='#'){
+              if(top_state!=INFUNC){
+                top_state=INFUNC;
+                //in_exp=2;
+                putchar('|');
+              }
+            }else{
+              if(in_exp<1){
+                in_exp++;
+              }
+            }
+
+            putchar(ptr[pos]);
+          }
+        }
+        else{putchar('X');}
+      }
+    }/*
     if(sub_state!=INFUNC){
-      if(isalpha(ptr[i])){
+      if(isalpha(ptr[pos])){
         if(state!=INSTRING){
           if(state!=INWORD){
             word_pos=0;
             state=INWORD;
-            word[word_pos]=ptr[i];
+            word[word_pos]=ptr[pos];
           }else{
             word_pos++;
-            word[word_pos]=ptr[i];
+            word[word_pos]=ptr[pos];
           }
         }else{ ;}
       }else{
@@ -545,77 +762,81 @@ int interpret(int input, int start, int stop){
           word[word_pos]='\0';
           state=BETWEEN;
           printf("\n%s:",word);
-          if(ptr[i]=='#'){ add_var_to_stack(word, FUNC, "", i); }
-          if(ptr[i]=='-'){
-            int p=i;
+          if(isspace((char)ptr[pos])){
+            pos++;
+          }
+          if(ptr[pos]=='#'){ add_var_to_stack(word, FUNC, "", pos); }
+          printf("[[[%d]]]",check_if_operator(ptr[pos], MATH));
+          if(check_if_operator(ptr[pos], MATH)==SUB){
+            printf("SUB");
+            int p=pos;
             p++;
             if(isdigit(ptr[p])){
               while(isdigit(ptr[p])){
-                printf("<%c>",(char)ptr[p]);
+                printf("<%c>",ptr[p]);
                 p++;
               }
-              if(ptr[p]!='+' && ptr[p]!='*' && ptr[p]!='/' && ptr[p]!='%'){
-                printf("<%d>",ptr[p]);
+              
+              if(check_if_operator(ptr[p], MATH)==MATH){
+                printf("<%c>",ptr[p]);
                 sub_word_pos=0;
-                data[sub_word_pos]=ptr[i];
+                data[sub_word_pos]=ptr[pos];
                 word_type=NUM;
                 sub_state=INNUM;
-                i++;
+                pos++;
               }
             }
           }
         }
       }
       
-      if(isdigit(ptr[i])){
+      if(isdigit(ptr[pos])){
         if(word_type!=NUM){
           sub_word_pos=0;
-          data[sub_word_pos]=ptr[i];
+          data[sub_word_pos]=ptr[pos];
           word_type=NUM;
           sub_state=INNUM;
         }else{
           sub_word_pos++;
-          data[sub_word_pos]=ptr[i];
+          data[sub_word_pos]=ptr[pos];
         }
       }else{
         if(sub_state==INNUM){
           sub_word_pos++;
           data[sub_word_pos]='\0';
-          add_var_to_stack(word, NUM, data, i);
+          add_var_to_stack(word, NUM, data, pos);
           printf("%s",data);
           word_type=NUN;
           sub_state=BETWEEN;
         }
       }
       
-      if(isspace(ptr[i])){putchar(ptr[i]); }
-      //if(ptr[i]=='\n'){putchar(ptr[i]); }
-      //if(ptr[i]==' '){ putchar(ptr[i]); }
+      if(isspace(ptr[pos])){putchar(ptr[pos]); }
       
-      if(ptr[i]=='"'){
+      if(ptr[pos]=='"'){
         if(state!=INSTRING){
           sub_word_pos=0;
-          i++;
-          data[sub_word_pos]=ptr[i];
+          pos++;
+          data[sub_word_pos]=ptr[pos];
           word_type=STR;
           state=INSTRING;
         }
         else{
           sub_word_pos++;
           data[sub_word_pos]='\0';
-          add_var_to_stack(word, STR, data, i);
+          add_var_to_stack(word, STR, data, pos);
           word_type=NUN;
           state=BETWEEN;
         }
       }else{
         if(state==INSTRING){
           sub_word_pos++;
-          data[sub_word_pos]=ptr[i];
+          data[sub_word_pos]=ptr[pos];
         }
       }
     }
     
-		if(ptr[i]=='#'){
+		if(ptr[pos]=='#'){
       if(sub_state!=INFUNC){
         word_type=NUN;
         sub_state=INFUNC;
@@ -626,7 +847,9 @@ int interpret(int input, int start, int stop){
       }
 			sub_state==INFUNC;
 		}
+    */
 	}
+  return pos;
 }
 
 int main() {
@@ -642,10 +865,9 @@ int main() {
     interpret(PROGRAM,0,VAR_START);
       
 		//add_var_to_stack("a", CHAR, "z", 0);
-     
-    printf("\n-------------------------\n");
-    int var_addr=get_var("x");
-    printf("ADDR:%d\n",var_addr);
+    
+    //int var_addr=get_var("x");
+    //printf("ADDR:%d\n",var_addr);
     printf("\n-------END DEBUG---------\n\n");
         
     dump_all_mem(0,MEM_SIZE);
