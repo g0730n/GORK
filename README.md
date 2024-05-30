@@ -415,6 +415,47 @@ The following can be used as whitespace seperators:
 '~', '@', '$', '(', ')', '_', '{', '}',
 '[', ']', ':', ';', '|', ' '
 ```
+
+In almost any state, GORK can and will also use changes from data types as a seperator. All variable and function names MUST be alpha only. They cannot contain a number. This allows GORK to know if it's not in a string, and it's reading a letter (aA-zZ) then it is reading a variable or function name! 
+
+Below are some examples:
+```
+a 24           [a=24] Here we use a space for a seperator...
+a24            [a=24] Because in the change of character type,
+                      GORK knows that 'a' is the variable name,
+                      and 24 is the value.
+a(24)
+a:24
+a@24
+a|24           All mean the same thing. It is up to the programmer
+               what style they want to use. Let's look at some more
+               switches between data types.
+
+a24b"Hello"c24.23out a+b+c
+               The above code may look a little confusing, but
+               This is what it actually contains:
+a 24
+b "Hello"      The double quotes (") starting and ending a string
+c 24.23        are a change in data type, so they can be used as a
+out a+b+c      whitespace seperator as long as they are encasing a
+               string.
+               
+               The result here would be (24Hello24.23);
+
+outa+b+c       An example that would not work as expected:
+               [outa=b+c] creates a new variable and sets value
+               to value of b+c...
+                         
+a: 24;
+b: "Hello";
+c: 24.23;
+out(a+b+c)   Although the "Whitespace" symbols are unessesary in
+             a lot of spaces, a programmer using GORK can take the
+             liberty to use them and in doing so sacrifice a small
+             amount of program memory in exchange for better read
+             ability and be less likely to run into an error from
+             mashing types.
+```
 2. ### MATH Interpretation
 Below is an example of some MATH expressions:
 The only acceptable whitespace in a math expression is a space ' ',
