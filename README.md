@@ -352,3 +352,148 @@ Data types are assigned automatically by the GORK interpreter. There are three b
 3. STRING TYPE
   A string is any number of numbers, characters, or symbols enclosed in double quotes "".
   
+  
+## Inserting data into var table
+
+If the variable "x" is a string with value of "Hello", it will look like this in memory (2x'\0'hello'\0'). Let's say we want to change x to "Hello World!", we do:
+```
+x"Hello World!"
+```
+When GORK looks in the var table for variable "x", it finds that we have a string stored there with the name "x", but the only problem is it's length is 6 bytes long (including NULL terminator), whereas the new string we want to save there is 12 bytes long.
+
+What do?
+
+1. We need to subtract the length of "x" that is stored in var table (6) from the new length of "x" (12).
+2. That means we need to shift the entire var table to the right 6 times, starting at the next variable. Using memmove() will work for this. Code for C function that will do this:
+
+```c
+
+void shift_var_table(int pos, int old_size, int shift_size){
+  int shift_point=pos+old_size;
+  int shift_to_point=pos+shift_size;
+  int data_size=var_end-shift_point;
+  
+  //void * memmove ( void * destination, const void * source, size_t num );
+  memmove(mem + shift_to_point, mem + shift_point, data_size); 
+}
+
+void update_var_in_table(int pos){
+  /*
+  pos is the var location we are updating. we have already
+  gotten it by calling get_var();
+  */
+  //we get the size of var previously stored there
+  int old_size=get_var_size(pos);
+
+  //we get the size of var on stack we are pushing to table
+  //(stack_pos) is a global variable
+  int new_size=get_stack_var_size(stack_pos);
+  //prototype integer for size to grow
+  
+  if(new_size!=old_size){
+    /* examples 1: old_size: 3, new_size: 6
+                   (6-3 = 3) grow table by 3
+       example 2:  old_size: 5, new_size 3
+                   (3-5= -2) shrink table by 2
+    */          
+    int shift_size = new_size-old_size;
+    shift_var_table(pos, , old_size, shift_size);
+  }
+  
+
+}
+```
+
+## Valid Whitespace Seperators:
+
+Depending on what state GORK is in, different symbols can be used as whitespace seperators:
+
+1. ### Regular Interpretation
+In this state, GORK is not in a STRING, CONDITIONAL, or MATH expression.
+The following can be used as whitespace seperators:
+```
+'~', '@', '$', '(', ')', '_', '{', '}',
+'[', ']', ':', ';', '|', ' '
+```
+2. ### MATH Interpretation
+Below is an example of some MATH expressions:
+The only acceptable whitespace in a math expression is a space ' ',
+brackets of any kind "(){}[]" can be used in math expressions, and in a MATH expression will be counted as expression seperators, not whitespace!
+```
+a+b       [a=a+b]
+a + b     [a=a+b] All whitespace is stripped from expression
+                  when GORK is in a MATH expression..
+                  
+a(b)      [a=b] Expresssion has no math symbols,
+                so brackets are treated as whitespace...
+a b       [a=b]
+a:b       [a=b]
+a b+24    [a=b+24]
+a=b       [ERROR, not in CONDITIONAL]
+a24/(2+1) [a=24/2+1] Brackets are not used as multipliers
+                       as with some math formats...
+```
+Symbols that are only used for MATH expressions:
+(note the '+' symbol can also be used to concationate strings.
+```
+add:      '+'
+  var+1                   [var=var+1]
+  a"Hello"                [a="Hello"]
+  a+" World!"             [a=a+" World!"] a="Hello World!"
+  
+  z 21 + " Jump Street"   [z="21 Jump Street"] Whenever a
+                          number is added to a string, it always
+                          results in a string...
+subtract: '-'
+  x-1        [x=x-1] With negative numbers, the spacing is
+                     important! If there is no space between
+                     the variable name and the number, it will
+                     be treated as subtraction. Otherwise, a space
+                     or other valid delimiter such as a bracket is
+                     needed to assign a variable a negative number.
+  x(-1)
+  x:-1
+  x[-1]
+  x{-1}
+  x|-1
+  x -1       [x= -1] All of these are valid seperators to
+                     let GORK know that it is a negative number
+                     and we are not trying to subtract from "x".
+  x52-27     [x=52-27]
+  
+multipy:  '*'
+  w30                 [w=30]
+  l45                 [l=45]
+  sqft w*l            [sqft=30*45]
+  turtles(3*4)+(2*3)  [turtles=(12)+(6)]
+divide:   '/'
+modulus:  '%'
+  zed32
+  out zed%30          [prints 2]
+exponent: '^'
+  num3
+  num^num             [num=3*3*3]
+```
+
+Symbols that are only used in CONDITIONAL expressions:
+```
+greater: '>'
+  con x>y out x        [if x>y print x]
+lesser:  '<'
+  con x<y x+1          [if x<y add 1 to x]
+equals:  '='
+  con x=y out"EQUAL"   [if x=y print EQUAL]
+not:     '!'
+  con x!y out "NOT"    [if x is not equal to y print NOT]
+and:     '&'
+  con x>y & y>z out1   [if x>y AND y>z print 1]
+or:      '?'
+  con x>0 ? x=-1       [if x>0 OR x= -1] Note we did not used
+                                         any whitespace before
+                                         -1, that is because there
+                                         are no math operations
+                                         happening in a conditional.
+                                         so anything with a '-' is
+                                         considered negative.
+```
+  
