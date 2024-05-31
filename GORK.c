@@ -155,7 +155,10 @@ int get_type_size(int type){
 	else if(type==LONGER){size=LONGER_SIZE;}
 	else if(type==DOUBLE){size=DOUBLE_SIZE;}
 	else if(type==STR){size=0;}
-	else{check_errors(INVALID_TYPE);}
+	else{
+    printf("<%d>",type);
+    check_errors(INVALID_TYPE);
+  }
 	return size;
 }
 
@@ -536,6 +539,7 @@ int interpret(int input, int start, int stop){
 	char word[MAX_WORD_SIZE];
 	char data[MAX_INPUT_SIZE];
   
+  uint8_t expr_type;
   uint8_t top_state;
   uint8_t mid_state;
   uint8_t sub_state;
@@ -608,8 +612,8 @@ int interpret(int input, int start, int stop){
               }else{
                 data[data_pos]='\0';
                 add_var_to_stack(word, NUM, data, pos);
-                parse_stack();
-                empty_stack();
+                //parse_stack();
+                //empty_stack();
               }
             }
           }else{
@@ -623,8 +627,8 @@ int interpret(int input, int start, int stop){
               }else{
                 data[data_pos]='\0';
                 add_var_to_stack(word, NUM, data, pos);
-                parse_stack();
-                empty_stack();
+                //parse_stack();
+                //empty_stack();
               }
             }
           }
@@ -638,8 +642,8 @@ int interpret(int input, int start, int stop){
             if(top_state!=INFUNC){
               sub_state=INFUNC;
               add_var_to_stack(word, FUNC, "", pos);
-              parse_stack();
-              empty_stack();
+              //parse_stack();
+              //empty_stack();
             }
           }
           else{ //push_char_to_stack(ptr[pos]);
@@ -654,8 +658,8 @@ int interpret(int input, int start, int stop){
             printf("(%s)",data);
             add_var_to_stack(word, STR, data, pos);
             if(get_next_token(pos)!='+'){
-              parse_stack();
-              empty_stack();
+              //parse_stack();
+              //empty_stack();
             }
           }else{
             data[data_pos]=ptr[pos];

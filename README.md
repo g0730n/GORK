@@ -154,7 +154,8 @@ BUILTIN FUNCTIONS are "out", "ret", "lpf", and "con". More will be added later..
   
   [out var]               prints var
   
-  [out"hello "+"world!"]  prints "hello world!"
+  [out"hello "+"world!"]
+  [out"hello ","world!"]  prints "hello world!"
                           If a variable name is followed by a non alpha character, (whitespace,
                           symbol, or number) no seperator is needed.
   
@@ -537,4 +538,179 @@ or:      '?'
                                          so anything with a '-' is
                                          considered negative.
 ```
+
+## Expressions
+
+Determining what makes an expression start and stop is difficult. We need to make some rules for expressions.
+
+1. ### Expression Beginning
+  What determines the beginning of an expression?
+  
+  At this point I am thinking an expression always has to start with a VARIABLE or FUNCTION name.
+  As we will always be handling a variable or function.
+  
+  ```
+  [myvar]
+  [myfunc]
+  [mylist]
+  
+  [out]
+  [con]
+  [lpf]
+  [ret]
+  ```
+  
+2. ### Expression Middle
+  How do we know we are still in the middle of an expression? What kind of expression is it?
+  
+  Once the variable or function name that is the "owner" of the expression has been parsed. Everything following the first delimiter is the "middle" of the expression.
+  Examples of SETTING expressions, where we are just giving values to a VARIABLE or FUNCTION.
+  
+  ```
+  [myvar 123]
+  [myfunc 1,2]  A function call with two parameters
+  [mylist,"This is a list",123,1.342,"x"]
+  
+  [out 123,"Hello"] A function call to OUT
+  [con myvar>100]   A conditional check on myvar
+  [lpf]             A function call to LPF, outside a function, this does nothing.
+                    inside a function this will jump to beginning of function.
+  [ret myvar]             Outside a function RET also does nothing. If called
+                    Inside a function it ends the function, passing the
+                    data it is returning to the variable that is calling the
+                    function.
+  ```
+  
+3. ### Expression End
+  How do we know we are at the end of an expression? How do we parse the expression once we have determined the beginning, middle, and end?
+  
+  In order to know what ends the expression, we need to know what is determining it is IN the expression.
+  
+  Assigning a variable: `myvar2`, GORK knows the name and type of the variable. If there is a space after the 2, then GORK obiously knows thats it. But what if we are adding multiple variables together?
+  
+  ```
+  first 12
+  second 15
+  third 16
+  fourth first+second+third
+  ```
+  So based off of this, we need to be looking for MATH symbols! After the first whitespace seperating the variable name from the variable's value we are assigning to it, we will check if there are any MATH symbols that are adding more to it.
+  
+  What if we are incrimenting a number like this:
+  ```
+  fourth+1
+  ```
+  Then GORK should know that the value is fourth's own value+1. If fourth didn't have a value before, it would assign it the value of 1. Any uninitialized variables should always be started at 0 if a number and "" if a string or CHAR.
+  
+  So when adding to a variable, we check if there are any math operations happening, once we hit some "whitespace", we know that the expression is over.
+  
+## More Expression Examples
+
+Considering that with different data types and functions GORK will be looking for different indicators for starting and ending a function, lets go over the basics.
+
+### Regular Variables
+
+1. Start with variable name `myvar`
+2. Immediately after variable name have "whitespace" seperating the first value. 
+The '-' symbol is not considered acceptable whitespace, therefore it must have an aditional whitespace after the VAR name in order to set the var to a negative number.
+Acceptable whitespace:
+  ```
+  myvar2
+  myvar 2
+  myvar"hello"
+  myvar yourvar
+  myvar("HELLO")
+  myvar:231.324
+  myvar: 123
+  myvar -3
+  myvar(-3)
+  ```
+3. If more is going to be added to the variable, MATH symbols will be used. The only Math symbol that can be used on a NON NUMBER data type such as a STRING or CHAR is '+'
+  ```
+  myvar2+2
+  myvar 2-3
+  myvar"hello "+2+" all!"
+  myvar yourvar+myvar
+  myvar("hello"+" world!")
+  myvar:231.324*1
+  myvar: 123/3*(4+yourvar)
+  myvar -3*-1
+  myvar(-3+3)
+  ```
+  So after reaching the end of a value and there is no MATH symbol following, we know the expression has ended and GORK needs to put it all together.
+  
+### Assigning Variables from Variables
+
+Let's say we want to assign the value of `bar` to the variable `foo`:
+```
+foo bar
+```
+That's it! Gork looks up the value of `bar` and put's it in `foo`'s value slot in the var table.
+
+### Expressions Regarding Functions
+Functions are defined like this: `func # <function data> #`
+When Gork reads a function name immediately followed by a '#' symbol, it knows that's a function and stores it's name and address in variable table.
+
+Functions are the only place in GORK that will have variables with a number in them.
+
+If parameters are sent to a function, they are accessed within a function in the order they are sent: 0p, 1p, 2p, 3p...
+
+If no parameters were sent, and they are tried to access within the function, they return NULL values.
+
+All the data contained within the `# #` function block is skipped upon interpreting the PROGRAM code, until the function is called. If for some reason the function is never called, it is never interpreted.
+
+When the function is called, it is interpreted, any variables initialized within the function are local and cleared from the STACK when function is finished running. All parameters are also temorary.
+
+Lets look at a simple function example:
+  
+```
+hello #
+  ret "Hello World"
+#
+
+out hello
+```
+
+Above we made a "Hello World" function.
+when `hello` is called, all it does is return the string "Hello World!". Our BUILTIN OUT function prints this to the console.
+
+Another simple verison of "Hello World":
+
+```
+hello#out"Hello World"#
+
+hello
+```
+In this version, we call the OUT BUILTIN from within the function, so all we have to do is call `hello` to run the function.
+Therefore a functions name can be an expression by itself.
+GORK knows that nothing HAS to follow the function call for the expression to be over, but it will look anyways. It will look for a NUMBER or STRING, or VARIABLE name then a COMMA, incase there are multiple parameters.
+
+We will discuss this in the next section.
+
+### Assigning Variables from Functions
+A Variable name preceeding a function call will be assigned the value the function returns, if it returns any data. If it doesn't return any data, nothing happens too the variable.
+
+Below is an example of a function that takes two parameters (in this case numbers) the first number is the start of the counting, the second is the end of the counting, the function returns the end number to the calling VARIABLE `x`, to where it is stored.
+```
+myfunc#out0p0p+1con0p<1plpf ret0p#
+x0x myfunc0,100
+```
+A little hard to read eh? Lets expand that and add some "whitespace" to make it easier to see the expressions:
+```
+myfunc# {
+  out( 0p );
+  0p +1;
+  con( 0p < 1p ){ lpf; } 
+  ret( 0p );
+  } #
+x: 0;
+
+x: myfunc( x, 100 );
+```
+
+That may look a little more familiar to most people to programming languages. That is the beauty of GORK in the flexibility we can write with. As an interpeted language, the ability to strip whitespace to shorten the code could be a great asset for memory storage and interpreting time. But we also have the ability to write with as much white space as we want.
+
+On the last line of that code example: `x: myfunc( x, 100 );` that entire line is an expression. We are starting with the variable name 'x', and telling GORK we want to make it's value whatever 'myfunc' returns. `myfunc` and `x,100` are also expressions in a way, but they are still part of the main expression of assigning value to `x`.
+  
+
   
