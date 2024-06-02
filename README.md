@@ -13,7 +13,7 @@ Below are features that will be implimented, and their progress:
 - [x] INTERPRET PROGRAM MEMORY. Add variables to STACK, and or VARIABLE TABLE
 - [x] Determine whether or not a variable is a BUILTIN function, if so, do not add it to the variable table.
 - [x] Determine whether or not variable on the STACK is already stored in VARIABLE TABLE, if so, do not re-add it.
-- [ ] If variable on STACK is already in VARIABLE TABLE, update it's value, shrinking or growing VARIABLE TABLE if type/length of variable data is different than before.
+- [x] If variable on STACK is already in VARIABLE TABLE, update it's value, shrinking or growing VARIABLE TABLE if type/length of variable data is different than before.
 - [ ] Functions to evaluate whole expressions
 - [ ] Functions to parse functions when called
 - [x] Functions to convert from any number type to another.
