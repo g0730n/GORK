@@ -6,7 +6,6 @@
 #include <ctype.h>
 
 #define MEM_SIZE    512
-#define VAR_START   256
 #define STACK_START MEM_SIZE-1
 
 #define CHAR_SIZE   sizeof(unsigned char)
@@ -25,11 +24,10 @@
 #define MAX_OPS      7
 #define MAX_BUILTINS 5
 
-const char* program[]="var4 z"
-											"\"hello there!\""
-											"func#x0out x x+1con x<10lpf ret0#"
-											"func out var "
-                      "y42";
+
+//func stack [STACK_END][lpf] [con 0p<1p] [0p+1] [out 0p] [1p=100] [0p=0] [func=addr][STACK_START]
+//This needs to be parsed FIFO [STACK_END] <- [STACK_START]
+const char* program[]="var\"Hello World!\"x43y255var32.234";
                          
 const char* words[MAX_BUILTINS]={"out","lpf","ret","con","NULL"};
 
@@ -59,13 +57,15 @@ enum con_op_type{
 
 char cmd[MAX_INPUT_SIZE];
 char *mem;
-int mem_pos;
-int mem_end;
 //int stack_end = STACK_START-CHAR_SIZE;
-int stack_end = STACK_START;
-int stack_pos = STACK_START;
+int prog_end;
+int var_start;
+int stack_pos=STACK_START;
+int stack_end=STACK_START;
+
+//int stack_pos = STACK_START;
 //int stack_pos = STACK_START-CHAR_SIZE;
-int var_end =   VAR_START;
+int var_end;
 uint8_t error;
 int pos_count;
 
@@ -80,21 +80,21 @@ int check_builtins(char* word){
 }
 
 enum prog_type{
-	COMMAND,
-	PROGRAM
+  COMMAND,
+  PROGRAM
 };
 
 enum types {
-		NUN,
+    NUN,
     CHAR,
-		STR,
-		UINT,
+    STR,
+    UINT,
     INT,
-		LONG,
-		LONGER,
+    LONG,
+    LONGER,
     DOUBLE,
-		NUM,
-		FUNC,
+    NUM,
+    FUNC,
     MATH,
     CON,
     SPACE,
@@ -102,70 +102,70 @@ enum types {
 };
 
 enum errors {
-	NONE,
-	UNKNOWN,
-	OUT_OF_MEMORY,
-	NUMBER_TOO_BIG,
-	NUMBER_TOO_SMALL,
-	STRING_TOO_LONG,
-	STACK_OVERFLOW,
-	STACK_UNDERFLOW,
+  NONE,
+  UNKNOWN,
+  OUT_OF_MEMORY,
+  NUMBER_TOO_BIG,
+  NUMBER_TOO_SMALL,
+  STRING_TOO_LONG,
+  STACK_OVERFLOW,
+  STACK_UNDERFLOW,
   ADDRESS_OUT_OF_RANGE,
   MEMORY_NOT_ALLOCATED,
   INVALID_TYPE
 };
 
 enum states {
-	BETWEEN,
-	INWORD,
-	INSTRING,
-	INVAR,
-	INFUNC,
-	INNUM,
+  BETWEEN,
+  INWORD,
+  INSTRING,
+  INVAR,
+  INFUNC,
+  INNUM,
   INMATH,
   INCON,
   INOUT
 };
 
 int check_errors(int e){
-	if(e>NONE){
-		printf("\nERROR: ");
-		if(e==OUT_OF_MEMORY){printf("OUT OF MEMORY!");}
-		else if(e==NUMBER_TOO_BIG){printf("NUMBER TOO BIG!");}
-		else if(e==NUMBER_TOO_SMALL){printf("NUMBER TOO SMALL!");}
-		else if(e==STRING_TOO_LONG){printf("STRING TOO LONG!");}
-		else if(e==STACK_OVERFLOW){printf("STACK OVERFLOW!");}
-		else if(e==STACK_UNDERFLOW){printf("STACK UNDERFLOW!");}
+  if(e>NONE){
+    printf("\nERROR: ");
+    if(e==OUT_OF_MEMORY){printf("OUT OF MEMORY!");}
+    else if(e==NUMBER_TOO_BIG){printf("NUMBER TOO BIG!");}
+    else if(e==NUMBER_TOO_SMALL){printf("NUMBER TOO SMALL!");}
+    else if(e==STRING_TOO_LONG){printf("STRING TOO LONG!");}
+    else if(e==STACK_OVERFLOW){printf("STACK OVERFLOW!");}
+    else if(e==STACK_UNDERFLOW){printf("STACK UNDERFLOW!");}
     else if(e==ADDRESS_OUT_OF_RANGE){printf("ADDRESS OUT OF RANGE!");}
     else if (e==MEMORY_NOT_ALLOCATED){printf("MEMORY NOT ALLOCATED!");}
     else if (e==INVALID_TYPE){printf("INVALID TYPE!");}
-		else {printf("UNKNOWN ERROR!");}
-		free(mem);
-		exit(0);
-	}
+    else {printf("UNKNOWN ERROR!");}
+    free(mem);
+    exit(0);
+  }
 }
 
 int get_type_size(int type){
-	int size;
+  int size;
   if(type==NUN){size=0;}
   else if(type==CHAR){size=CHAR_SIZE;}
-	else if(type==UINT){size=UINT_SIZE;}
-	else if(type==INT){ size=INT_SIZE; }
-	else if(type==LONG||type==FUNC){size=LONG_SIZE;}
-	else if(type==LONGER){size=LONGER_SIZE;}
-	else if(type==DOUBLE){size=DOUBLE_SIZE;}
-	else if(type==STR){size=0;}
-	else{
-    printf("<%d>",type);
+  else if(type==UINT){size=UINT_SIZE;}
+  else if(type==INT){ size=INT_SIZE; }
+  else if(type==LONG||type==FUNC){size=LONG_SIZE;}
+  else if(type==LONGER){size=LONGER_SIZE;}
+  else if(type==DOUBLE){size=DOUBLE_SIZE;}
+  else if(type==STR){size=0;}
+  else{
+    printf("<TYPE: %d>",type);
     check_errors(INVALID_TYPE);
   }
-	return size;
+  return size;
 }
 
 int move_pos(int pos, int amount){
-	pos+=amount;
-	if(pos>=stack_end){check_errors(OUT_OF_MEMORY);}
-	return pos;
+  pos+=amount;
+  if(pos>=stack_end){check_errors(OUT_OF_MEMORY);}
+  return pos;
 }
 
 int grow_stack(int pos, int amount){
@@ -177,73 +177,76 @@ int shrink_stack(int pos, int amount){
 }
 
 int grow_stack_pointer(int pos, int amount){
-	pos-=amount;
-	if(pos<=var_end){check_errors(STACK_OVERFLOW);}
-	return pos;
+  pos-=amount;
+  if(pos<=var_end){
+    printf("<STACK POS: %d>\n",pos);
+    check_errors(STACK_OVERFLOW);
+    }
+  return pos;
 }
 
 int shrink_stack_pointer(int pos, int amount){
-	pos+=amount;
-	if(pos>STACK_START){check_errors(STACK_UNDERFLOW);}
-	return pos;
+  pos+=amount;
+  if(pos>STACK_START){check_errors(STACK_UNDERFLOW);}
+  return pos;
 }
 
 int dump_mem(int pos) {
   uint8_t type=mem[pos];
   uint8_t size=get_type_size(type);
   pos = move_pos(pos, CHAR_SIZE);
-	pos = move_pos(pos, strlen(mem + pos) + CHAR_SIZE);
-	
+  pos = move_pos(pos, strlen(mem + pos) + CHAR_SIZE);
+  
   if (type==CHAR){
     printf("%c",mem[pos]);
-	}else if (type==INT||type==UINT){
+  }else if (type==INT||type==UINT){
     printf("%d",mem[pos]);
-	}else if(type==LONG||type==FUNC){
-		int16_t *lptr=(int16_t*)(mem+pos);
+  }else if(type==LONG||type==FUNC){
+    int16_t *lptr=(int16_t*)(mem+pos);
     printf("%d",lptr);
-	}else if(type==LONGER){
-		int32_t *lgrptr=(int32_t*)(mem+pos);
+  }else if(type==LONGER){
+    int32_t *lgrptr=(int32_t*)(mem+pos);
     printf("%d",lgrptr);
-	}else if(type==DOUBLE){
-		double *dptr=(double *)(mem+pos);
+  }else if(type==DOUBLE){
+    double *dptr=(double *)(mem+pos);
     printf("%f",dptr);
-	}else if(type==STR){
+  }else if(type==STR){
     size=strlen(mem+pos)+CHAR_SIZE;
     printf("%s",mem+pos);
-	}else{check_errors(UNKNOWN);}
+  }else{check_errors(UNKNOWN);}
   pos=move_pos(pos,size);
   return size;
 }
 
 void break_line(int pos){
-	if(pos-pos_count>32){
-		putchar('\n');
-		pos_count = pos;
-	}
+  if(pos-pos_count>32){
+    putchar('\n');
+    pos_count = pos;
+  }
 }
 
 int print_string(int pos){
-	int end=strlen(mem + pos)+CHAR_SIZE;
-	for(int i=0; i<end;i++){
-		if(mem[pos]=='\0'){ putchar(mem[pos]+48); }
-		else{ putchar(mem[pos]); }
-		pos+=CHAR_SIZE;
-		break_line(pos);
-	}
-	return pos;
+  int end=strlen(mem + pos)+CHAR_SIZE;
+  for(int i=0; i<end;i++){
+    if(mem[pos]=='\0'){ putchar(mem[pos]+48); }
+    else{ putchar(mem[pos]); }
+    pos+=CHAR_SIZE;
+    break_line(pos);
+  }
+  return pos;
 }
 /*
 */
 void dump_all_mem(int pos, int length) {
-	pos_count=pos;
+  pos_count=pos;
   uint8_t type;
   uint8_t size;
   
-	while(pos<length){
-		if(mem[pos]>=0 && mem[pos]<=9){putchar((char)mem[pos]+48);}
+  while(pos<length){
+    if(mem[pos]>=0 && mem[pos]<=9){putchar((char)mem[pos]+48);}
     else{putchar(mem[pos]);}
     
-		if(pos>=VAR_START){
+    if(pos>=var_start && pos<=var_end || pos>=stack_end){
       type=mem[pos];
       size=get_type_size(type);
       pos+=CHAR_SIZE;
@@ -266,93 +269,93 @@ void dump_all_mem(int pos, int length) {
       break_line(pos);
       pos+=size;
       break_line(pos);
-		}else{
-			pos+=CHAR_SIZE;
-			break_line(pos);
-		}
-	}
-	putchar('\n');
+    }else{
+      pos+=CHAR_SIZE;
+      break_line(pos);
+    }
+  }
+  putchar('\n');
 }
 
 void add_type_from_stack(){
   mem[var_end]=mem[stack_end];
-	var_end=move_pos(var_end,INT_SIZE);
-	stack_pos=shrink_stack_pointer(stack_end,INT_SIZE);
+  var_end=move_pos(var_end,INT_SIZE);
+  stack_pos=shrink_stack_pointer(stack_end,INT_SIZE);
 }
 
 void add_var_name_from_stack(){
-	int name_size = strlen(mem + stack_pos)+CHAR_SIZE;
-	memcpy(mem+var_end, mem+stack_pos, name_size+CHAR_SIZE);
-	var_end = move_pos(var_end, name_size);
-	stack_pos = shrink_stack_pointer(stack_pos, name_size);
+  int name_size = strlen(mem + stack_pos)+CHAR_SIZE;
+  memcpy(mem+var_end, mem+stack_pos, name_size+CHAR_SIZE);
+  var_end = move_pos(var_end, name_size);
+  stack_pos = shrink_stack_pointer(stack_pos, name_size);
 }
 
 void add_var_from_stack(){
-	int var_type = mem[stack_end];
-	int size = get_type_size(var_type);
-	mem[var_end]=var_type;
+  int var_type = mem[stack_end];
+  int size = get_type_size(var_type);
+  mem[var_end]=var_type;
 
-	if(var_type==STR){
-		size=strlen(mem+stack_pos)+CHAR_SIZE;
-		memcpy(mem + var_end, mem + stack_pos, size);
-		var_end = move_pos(var_end, size);
-		stack_pos = shrink_stack_pointer(stack_pos, size-1);
-	}
-	else{
-		memcpy(mem + var_end, mem + stack_pos, size);
-		var_end = move_pos(var_end, size);
-		stack_pos = shrink_stack_pointer(stack_pos, size);
-	}
+  if(var_type==STR){
+    size=strlen(mem+stack_pos)+CHAR_SIZE;
+    memcpy(mem + var_end, mem + stack_pos, size);
+    var_end = move_pos(var_end, size);
+    stack_pos = shrink_stack_pointer(stack_pos, size-1);
+  }
+  else{
+    memcpy(mem + var_end, mem + stack_pos, size);
+    var_end = move_pos(var_end, size);
+    stack_pos = shrink_stack_pointer(stack_pos, size);
+  }
 }
 
 int push_num_to_stack(double data){
-	int type=DOUBLE;
-	if(data>DOUBLE_MAX){
-		printf("%f\n",data);
-		error=NUMBER_TOO_BIG;
-	}else if(data<DOUBLE_MIN){
-		printf("%f\n",data);
-		error=NUMBER_TOO_SMALL;
-	}else{
-		if (data == (int32_t)data) {
-			int32_t num = (int32_t)data;
-			if(num>=0 && num<=UINT8_MAX){
-				uint8_t num = (uint8_t)data;
-				type = UINT;
-				stack_end = grow_stack_pointer(stack_end,UINT_SIZE);
-				memcpy((uint8_t *)(mem + stack_end), &num, UINT_SIZE);
-			}
-			else if(num>=INT8_MIN && num<= INT8_MAX){
-				int8_t num = (int8_t)data;
-				type = INT;
-				stack_end = grow_stack_pointer(stack_end, INT_SIZE);
-				memcpy((int8_t *)(mem + stack_end), &num, INT_SIZE);
-			}
-			else if(num>=INT16_MIN && num<=INT16_MAX){
-				int16_t num = (int16_t)data;
-				type = LONG;
-				stack_end = grow_stack_pointer(stack_end,LONG_SIZE);
-				memcpy((int16_t *)(mem + stack_end), &num, LONG_SIZE);
-			}
-			else{
-				type = LONGER;
-				stack_end = grow_stack_pointer(stack_end,LONGER_SIZE);
-				memcpy((int32_t *)(mem + stack_end), &num, LONGER_SIZE);
-			}
-		}else{
-				double num = data;
-				type = DOUBLE;
-				stack_end = grow_stack_pointer(stack_end,DOUBLE_SIZE);
-				memcpy((double *)(mem + stack_end), &num, DOUBLE_SIZE);
-		}
-	}
-	check_errors(error);
-	return type;
+  int type=DOUBLE;
+  if(data>DOUBLE_MAX){
+    printf("%f\n",data);
+    error=NUMBER_TOO_BIG;
+  }else if(data<DOUBLE_MIN){
+    printf("%f\n",data);
+    error=NUMBER_TOO_SMALL;
+  }else{
+    if (data == (int32_t)data) {
+      int32_t num = (int32_t)data;
+      if(num>=0 && num<=UINT8_MAX){
+        uint8_t num = (uint8_t)data;
+        type = UINT;
+        stack_end = grow_stack_pointer(stack_end,UINT_SIZE);
+        memcpy((uint8_t *)(mem + stack_end), &num, UINT_SIZE);
+      }
+      else if(num>=INT8_MIN && num<= INT8_MAX){
+        int8_t num = (int8_t)data;
+        type = INT;
+        stack_end = grow_stack_pointer(stack_end, INT_SIZE);
+        memcpy((int8_t *)(mem + stack_end), &num, INT_SIZE);
+      }
+      else if(num>=INT16_MIN && num<=INT16_MAX){
+        int16_t num = (int16_t)data;
+        type = LONG;
+        stack_end = grow_stack_pointer(stack_end,LONG_SIZE);
+        memcpy((int16_t *)(mem + stack_end), &num, LONG_SIZE);
+      }
+      else{
+        type = LONGER;
+        stack_end = grow_stack_pointer(stack_end,LONGER_SIZE);
+        memcpy((int32_t *)(mem + stack_end), &num, LONGER_SIZE);
+      }
+    }else{
+        double num = data;
+        type = DOUBLE;
+        stack_end = grow_stack_pointer(stack_end,DOUBLE_SIZE);
+        memcpy((double *)(mem + stack_end), &num, DOUBLE_SIZE);
+    }
+  }
+  check_errors(error);
+  return type;
 }
 
 void push_func_to_stack(int16_t addr){
   if(addr<0 || addr>MEM_SIZE){
-  	printf("%f\n",addr);
+    printf("%d\n",addr);
     error=ADDRESS_OUT_OF_RANGE;
   }else{
     stack_end = grow_stack_pointer(stack_end,LONG_SIZE);
@@ -363,39 +366,39 @@ void push_func_to_stack(int16_t addr){
 
 
 void push_str_to_stack(char* str){
-	int length=strlen(str);
-	if(length>MAX_STRING_SIZE){
-		printf("%s\n",str);
-		error=STRING_TOO_LONG;
-	}else{
-		stack_end = grow_stack_pointer(stack_end, length+CHAR_SIZE);
-		strcpy(mem + stack_end, str);
-	}
-	check_errors(error);
+  int length=strlen(str);
+  if(length>MAX_STRING_SIZE){
+    printf("%s\n",str);
+    error=STRING_TOO_LONG;
+  }else{
+    stack_end = grow_stack_pointer(stack_end, length+CHAR_SIZE);
+    strcpy(mem + stack_end, str);
+  }
+  check_errors(error);
 }
 
 void push_var_name_to_stack(char* name){
-	int length=strlen(name)+CHAR_SIZE;
-	if(length>MAX_WORD_SIZE){
-		printf("%s\n",name);
-		error=STRING_TOO_LONG;
-	}else{
-		stack_end = grow_stack_pointer(stack_end, length);
-		memcpy(mem + stack_end, name, length);
-	}
-	check_errors(error);
+  int length=strlen(name)+CHAR_SIZE;
+  if(length>MAX_WORD_SIZE){
+    printf("%s\n",name);
+    error=STRING_TOO_LONG;
+  }else{
+    stack_end = grow_stack_pointer(stack_end, length);
+    memcpy(mem + stack_end, name, length);
+  }
+  check_errors(error);
 }
 
 void push_char_to_stack(char data){
-	stack_end = grow_stack_pointer(stack_end, CHAR_SIZE);
-	mem[stack_end]=data;
-	check_errors(error);
+  stack_end = grow_stack_pointer(stack_end, CHAR_SIZE);
+  mem[stack_end]=data;
+  check_errors(error);
 }
 
 void push_type_to_stack(uint8_t type){
-	stack_end = grow_stack_pointer(stack_end, INT_SIZE);
-	mem[stack_end]=(uint8_t)type;
-	check_errors(error);
+  stack_end = grow_stack_pointer(stack_end, INT_SIZE);
+  mem[stack_end]=(uint8_t)type;
+  check_errors(error);
 }
 
 int get_var_value_addr(int pos){
@@ -435,65 +438,79 @@ int move_to_var_end(int pos){
 }
 
 int get_var(char *var_name){
-	//find variable from memory's variable table
-	int pos=VAR_START;
-	while(pos<var_end){
-		if(mem[get_var_name_addr(pos)]==var_name[0]){
-			if(!strcmp(mem+get_var_name_addr(pos), var_name)){
-        printf("POS:%d",pos);
-				return pos;
-			}
+  //find variable from memory's variable table
+  int pos=var_start;
+  while(pos<var_end){
+    if(mem[get_var_name_addr(pos)]==var_name[0]){
+      if(!strcmp(mem+get_var_name_addr(pos), var_name)){
+        //printf("POS:%d",pos);
+        return pos;
+      }
       pos = move_to_var_end(pos);
-		}
-		else{ pos = move_to_var_end(pos); }
-	}
-	return -1;
+    }
+    else{ pos = move_to_var_end(pos); }
+  }
+  return -1;
 }
 
 void empty_stack(){
   memset(mem + stack_end, '\0', (STACK_START-stack_end)*CHAR_SIZE); 
-	stack_pos=stack_end=STACK_START;
+  stack_pos=stack_end=STACK_START;
 }
 
-int get_var_from_stack(int addr){
-  int var_type=mem[stack_end];
-  int size=get_type_size(var_type);
-  if(var_type==STR){
-    int add = strlen(mem + stack_end + INT_SIZE);
-    size = strlen(mem + stack_end + INT_SIZE)+add;
-  }else{
-    size=get_type_size(var_type);
-  }
-  
-  return size;
+void shift_var_table(uint16_t pos, int16_t old_size, int16_t new_size){
+  int shift_point = pos+old_size;
+  int shift_to_point = pos+new_size;
+  int data_size = var_end-shift_point+new_size;
+  //printf("<SP:%d, STP:%d, DS%d, OS:%d, NS:%d>",shift_point,shift_to_point,data_size,old_size,new_size);
+  memmove(mem + shift_to_point, mem + shift_point, data_size); 
 }
 
 void push_var_to_table(char *word){
   int addr=get_var(word);
   if(addr<0){
-    int var_length=get_var_from_stack(addr);
+    //int var_length=get_var_from_stack(addr);
     add_type_from_stack();
     add_var_name_from_stack();
     add_var_from_stack();
     addr=get_var(word);
   }else{
-    printf("<WORD:%s, ADDR:%d>",word, addr);
+    uint8_t stack_type=get_var_type(stack_end);
+    uint8_t table_type=get_var_type(addr);
+    uint8_t stack_length=get_var_size(stack_end);
+    uint8_t table_length=get_var_size(addr);
+    uint16_t table_addr=get_var_value_addr(addr);
+    uint16_t stack_addr=get_var_value_addr(stack_end);
+    //printf("ST:%d,SL:%d,SA:%d  TT:%d,TL:%d,TA:%d",stack_type,stack_length,stack_addr,table_type,table_length,table_addr);
+    if(stack_type!=table_type){
+      //printf("\nTEST1\n");
+      mem[addr]=mem[stack_end];
+    }
+    if(stack_length!=table_length){
+      //printf("\nTEST2\n");
+      shift_var_table(table_addr, table_length, stack_length);
+      //printf("\nTEST3\n");
+    }
+    //memcpy(mem + stack_addr, mem + table_addr, length);
+    
+    memcpy(mem + table_addr, mem + stack_addr, stack_length);
+    var_end+=stack_length-table_length;
   }
   
 }
 
 int add_var_to_stack(char* word, int type, char* value, int addr){
-	if(type==NUM){type=push_num_to_stack(atof(value));}
-	else if(type==CHAR){push_char_to_stack(value[0]);}
-	else if(type==STR){push_str_to_stack(value);}
+  if(type==NUM){type=push_num_to_stack(atof(value));}
+  else if(type==CHAR){push_char_to_stack(value[0]);}
+  else if(type==STR){push_str_to_stack(value);}
   else if(type==FUNC){push_func_to_stack(addr+1);}
-	else {
-		check_errors(INVALID_TYPE);
-		return 1;
-	}
-	push_var_name_to_stack(word);
-	push_type_to_stack(type);
-	return 0;
+  else {
+    check_errors(INVALID_TYPE);
+    return 1;
+  }
+  push_var_name_to_stack(word);
+  push_type_to_stack(type);
+  return 0;
 }
 
 int ismath(char sym){
@@ -512,12 +529,12 @@ int iscon(char sym){
 
 int parse_stack(){
   stack_pos=stack_end;
-  int type=mem[stack_end];
-  int size=get_type_size(type);
-  int btype;
+  uint8_t type=mem[stack_end];
+  uint8_t size=get_type_size(type);
   stack_pos++;
-  if(type==SYS){
-    btype=check_builtins(mem+stack_pos);
+  uint8_t btype=check_builtins(mem+stack_pos);
+  if(btype!=MAX_BUILTINS){
+    //printf("$$%d$$",btype);
     stack_pos+=strlen(mem+stack_pos)+CHAR_SIZE;
   }else{
     push_var_to_table(mem+stack_pos);
@@ -532,12 +549,19 @@ char get_next_token(int pos){
   return mem[pos];
 }
 
+int16_t get_func_address(char * word){
+  int pos = get_var_value_addr(get_var(word));
+  int16_t lptr=(int16_t)(mem[pos]);
+  //printf("[[%d, %d]]]",lptr, pos);
+  return lptr;
+}
+
 int interpret(int input, int start, int stop){
   int pos;
   int this_word;
   char *ptr;
-	char word[MAX_WORD_SIZE];
-	char data[MAX_INPUT_SIZE];
+  char word[MAX_WORD_SIZE];
+  char data[MAX_INPUT_SIZE];
   
   uint8_t expr_type;
   uint8_t top_state;
@@ -550,9 +574,9 @@ int interpret(int input, int start, int stop){
   uint8_t sys;
   
   
-	if(input==PROGRAM){ptr=mem;}else{ptr=cmd;}
-	
-	for(pos=start;pos<stop;pos++){
+  if(input==PROGRAM){ptr=mem;}else{ptr=cmd;}
+  
+  for(pos=start;pos<stop;pos++){
     if(ptr[pos]=='\0'){
       printf("\nPROGRAM SIZE: %d\n",pos);
       return pos;
@@ -580,17 +604,26 @@ int interpret(int input, int start, int stop){
           mid_state=sub_state=BETWEEN;
           word_pos++;
           word[word_pos]='\0';
-          printf("<%s>",word);
+          //printf("<%s>",word);
           sys=check_builtins(word);
-          
           if(sys!=MAX_BUILTINS){
             if(!strcmp(words[sys],"out")){
+              //here we launch OUT function
+              //printf("(OUT)");
               top_state=INOUT;
             }
           }
           this_word=get_var(word);
           if(this_word>0){
-            printf("<<%s>>",word);
+            uint8_t this_word_type=get_var_type(this_word);
+            if(this_word_type==FUNC){
+              //here we launch functions
+              add_var_to_stack(word, FUNC, "", get_func_address(word));
+              parse_stack();
+              //empty_stack();
+              //printf("(FUNC: %d)",get_func_address(word));
+            }
+            //printf("<<%s>>",word);
           }
           
         }
@@ -612,7 +645,7 @@ int interpret(int input, int start, int stop){
               }else{
                 data[data_pos]='\0';
                 add_var_to_stack(word, NUM, data, pos);
-                //parse_stack();
+                parse_stack();
                 //empty_stack();
               }
             }
@@ -627,7 +660,7 @@ int interpret(int input, int start, int stop){
               }else{
                 data[data_pos]='\0';
                 add_var_to_stack(word, NUM, data, pos);
-                //parse_stack();
+                parse_stack();
                 //empty_stack();
               }
             }
@@ -642,7 +675,7 @@ int interpret(int input, int start, int stop){
             if(top_state!=INFUNC){
               sub_state=INFUNC;
               add_var_to_stack(word, FUNC, "", pos);
-              //parse_stack();
+              parse_stack();
               //empty_stack();
             }
           }
@@ -655,10 +688,10 @@ int interpret(int input, int start, int stop){
           if(ptr[pos]=='"'){
             sub_state=BETWEEN;
             data[data_pos]='\0';
-            printf("(%s)",data);
+            //printf("(%s)",data);
             add_var_to_stack(word, STR, data, pos);
             if(get_next_token(pos)!='+'){
-              //parse_stack();
+              parse_stack();
               //empty_stack();
             }
           }else{
@@ -681,12 +714,17 @@ int interpret(int input, int start, int stop){
 
 int main() {
   mem=(char *)calloc(MEM_SIZE,CHAR_SIZE);
-  memcpy(mem,*program,strlen(*program));
+  
+  prog_end=strlen(*program)+CHAR_SIZE;
+  memcpy(mem,*program,prog_end);
+  
+  var_start=var_end=prog_end;
+  
   if(mem==NULL){check_errors(MEMORY_NOT_ALLOCATED);}
   else{
     printf("\n<Memory allocated>\n");
     printf("\n-----------DEBUG---------\n");
-    interpret(PROGRAM,0,VAR_START);
+    interpret(PROGRAM,0,var_start);
     dump_all_mem(0,STACK_START);
 
     printf("\n-------END DEBUG---------\n\n");

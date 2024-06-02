@@ -711,6 +711,21 @@ x: myfunc( x, 100 );
 That may look a little more familiar to most people to programming languages. That is the beauty of GORK in the flexibility we can write with. As an interpeted language, the ability to strip whitespace to shorten the code could be a great asset for memory storage and interpreting time. But we also have the ability to write with as much white space as we want.
 
 On the last line of that code example: `x: myfunc( x, 100 );` that entire line is an expression. We are starting with the variable name 'x', and telling GORK we want to make it's value whatever 'myfunc' returns. `myfunc` and `x,100` are also expressions in a way, but they are still part of the main expression of assigning value to `x`.
+
+### Creating And Accessing Lists
+
+Lists are created by stating a variable name, followed by a comma. The following code will create a list with the values '1', '2', and '3'.
+
+```
+mylist,1,2,3
+```
+
+if `mylist` is already initialized, accessing an element is as easy as this:
+`out mylist,1`: Prints value of list elment 1. Will it print '1' or '2'??? ;)
+
+`mylist,2 4`: we can assign values just like we assign to a VARIABLE
+
+
   
 
   
