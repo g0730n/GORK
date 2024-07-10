@@ -1,3 +1,9 @@
+---
+Developement on GORK has been paused by me due to it becoming too complex for the amount of time I have to work on it. I am now working on MGRK (Micro General Reusable Keywords) and SGRK (Simplified General Reusable Keywords). GORK is not abandoned but on the back burner. MGRK and SGRK are similar concepts but less flexible with reduced functionality.
+---
+
+
+
 # GORK Programming Language
 
 ## General Optimized Reusable Keywords
